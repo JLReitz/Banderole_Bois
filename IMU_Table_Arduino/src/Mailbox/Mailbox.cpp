@@ -184,8 +184,8 @@ MailBox::MailboxState_T MailBox::updateStateMachine()
 */
 void MailBox::Process_RX()
 {
-    RX_Message::RX_Message_Structure_Normal_T * stRX_msg;
-    RX_Message::RX_Message_Structure_Recovery_T * stRXmsg;
+    RX_Message_Structure_Normal_T * stRX_msg;
+    RX_Message_Structure_Recovery_T * stRXmsg;
     
     //Begin parsing the buffered message based on the master's mailbox state, as that will
     //determine the type of message that was received
@@ -194,7 +194,7 @@ void MailBox::Process_RX()
     case MailboxState_T::eNormal:
 
         //Create message structure
-         stRX_msg = (RX_Message::RX_Message_Structure_Normal_T *)cRX_Buf;
+         stRX_msg = (RX_Message_Structure_Normal_T *)cRX_Buf;
 
         //Load into RX Message
         mRX = RX_Message(*stRX_msg);
@@ -223,7 +223,7 @@ void MailBox::Process_RX()
     case MailboxState_T::eRecovery:
 
         //Create message structure
-        stRX_msg = (RX_Message::RX_Message_Structure_Normal_T *)cRX_Buf;
+        stRX_msg = (RX_Message_Structure_Normal_T *)cRX_Buf;
 
         //If the mailbox state is already LOC_x, then we have already reset the sequence number.
         //  So if the RX message's sequence number isn't 1 + the last TX'd message's, induce LOC
@@ -261,8 +261,8 @@ void MailBox::Process_TX()
     {
     case MailboxState_T::eNormal:
         //Create message structure
-        TX_Message::TX_Message_Structure_Normal_T * stTX_msg;
-        mTX.encode_MessageStructure(*stTX_msg);
+        TX_Message_Structure_Normal_T * stTX_msg;
+        mTX = TX_Message(*stTX_msg);
 
         //Copy to the TX buffer
         memcpy(cTX_Buf, stTX_msg, _TX_MESSAGE_LENGTH_NORMAL);
@@ -291,8 +291,8 @@ void MailBox::Process_TX()
         mTX.Set_HashCompare(mRX.HashCompare());
 
         //Create message structure
-        TX_Message::TX_Message_Structure_Recovery_T * stTXmsg;
-        mTX.encode_MessageStructure(*stTX_msg);
+        TX_Message_Structure_Recovery_T * stTXmsg;
+        mTX = TX_Message(*stTX_msg);
 
         //Copy to the TX buffer
         memcpy(cTX_Buf, stTX_msg, _TX_MESSAGE_LENGTH_RECOVERY);
@@ -334,7 +334,7 @@ void MailBox::RX()
             else
                 nRX_Message_Length = _RX_MESSAGE_LENGTH_RECOVERY;                
             
-            memcpy(cRX_Buf, lLetter.cData, nRX_Message_Length);     //Copy the message to the RX buffer
+            memcpy(cRX_Buf, lLetter.sMessage.c_str(), nRX_Message_Length); //Copy the message to the RX buffer
             
             return;
         }        
@@ -358,8 +358,8 @@ void MailBox::TX()
     Letter_T lLetter;
 
     lLetter.cMessageType = (uint8_t)stTXState;
-    lLetter.nMessageLength = nTX_Message_Length + sizeof(lLetter) - sizeof(lLetter.cData);
-    lLetter.cData = cTX_Buf;
+    lLetter.nMessageLength = nTX_Message_Length + sizeof(lLetter) - sizeof(lLetter.sMessage);
+    lLetter.sMessage = cTX_Buf;
     lLetter.nCRC = computeCRC(lLetter) & 0x7FFF;
 
     TX_Specific(lLetter);
@@ -386,22 +386,24 @@ void MailBox::TX()
 */
 bool MailBox::checkCRC(Letter_T & lLetter)
 {
-    //Create a string with the length of the letter minus the stop byte
-    int nStr_Len = sizeof(lLetter) + strlen(lLetter.cData) - 1;
-    char cData[nStr_Len];
+    //Create a string with the length of the letter
+    const int nStr_Len = _LETTER_LENGTH + lLetter.sMessage.length();
+	char cMessage[256];
 
     //Copy over the letter header
-    cData[0] = lLetter.cMessageType;
-    cData[1] = lLetter.nMessageLength;
+    cMessage[0] = lLetter.cMessageType;
+    cMessage[1] = lLetter.nMessageLength;
 
     //Copy over the message
-    memcpy(&cData[2], lLetter.cData, strlen(lLetter.cData));
+    memcpy(&cMessage[2], lLetter.sMessage.c_str(), lLetter.sMessage.length());
     
     //Copy over the CRC
-    cData[2+nStr_Len] = HI_16(lLetter.nCRC);
-    cData[3+nStr_Len] = LO_16(lLetter.nCRC);
+    cMessage[nStr_Len-3] = HI_16(lLetter.nCRC);
+    cMessage[nStr_Len-2] = LO_16(lLetter.nCRC);
 
-    if(!computeCRC(cData, nStr_Len))
+	//We don't need the stop byte
+
+    if(!computeCRC(cMessage, nStr_Len))
         return true;
     else
         return false;
@@ -424,19 +426,19 @@ bool MailBox::checkCRC(Letter_T & lLetter)
 uint16_t MailBox::computeCRC(Letter_T & lLetter)
 {
     //Create a string with the length of the letter minus the cData pointer and stop byte
-    int nStr_Len = sizeof(lLetter) + strlen(lLetter.cData) - 2;
-    char cData[nStr_Len];
+	const int nStr_Len = _LETTER_LENGTH + lLetter.sMessage.length();
+    char sMessage[256];
 
     //Copy over the letter header
-    cData[0] = lLetter.cMessageType;
-    cData[1] = lLetter.nMessageLength;
+    sMessage[0] = lLetter.cMessageType;
+    sMessage[1] = lLetter.nMessageLength;
 
     //Copy over the message
-    memcpy(&cData[2], lLetter.cData, strlen(lLetter.cData));
+    memcpy(&sMessage[2], lLetter.sMessage.c_str(), lLetter.sMessage.length());
 
     //The remaining 2 bytes will remain 0, as we concatenate 15 0 bits to the end of the string
     //Compute CRC
-    return computeCRC(cData, nStr_Len) & 0x7FFF;
+    return computeCRC(sMessage, nStr_Len) & 0x7FFF;
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -468,9 +470,9 @@ uint16_t MailBox::computeCRC(char * cStr, int nLen)
             nDenominator = 0xAAAA;      //Set it to the divisor
 
         //Calculate product for the current 16 bit window
-        nNumerator = (nNumerator << 1);                                     //Shift the passdown to the right by 1
-        nNumerator += (*((uint16_t *)(cStr+(nPos/8))) & (0x80 >> (nPos % 8))); //Add the next bit in the string
-        nNumerator ^= nDenominator;                                          //Xor the numerator and denominator   
+        nNumerator = (nNumerator << 1);													//Shift the passdown to the right by 1
+		nNumerator += ((*((uint16_t *)(cStr + (nPos / 8))) >> (7 - (nPos % 8))) & 0x1);	//Add the next bit in the string
+        nNumerator ^= nDenominator;														//Xor the numerator and denominator   
     
         nPos++;
     }
