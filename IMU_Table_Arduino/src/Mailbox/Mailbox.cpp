@@ -183,10 +183,7 @@ MailBox::MailboxState_T MailBox::updateStateMachine()
     OUTPUT (void)
 */
 void MailBox::Process_RX()
-{
-    RX_Message::RX_Message_Structure_Normal_T * stRX_msg;
-    RX_Message::RX_Message_Structure_Recovery_T * stRXmsg;
-    
+{    
     //Begin parsing the buffered message based on the master's mailbox state, as that will
     //determine the type of message that was received
     switch(stRXState)
@@ -194,7 +191,7 @@ void MailBox::Process_RX()
     case MailboxState_T::eNormal:
 
         //Create message structure
-         stRX_msg = (RX_Message::RX_Message_Structure_Normal_T *)cRX_Buf;
+         RX_Message::RX_Message_Structure_Normal_T * stRX_msg = (RX_Message::RX_Message_Structure_Normal_T *)cRX_Buf;
 
         //Load into RX Message
         mRX = RX_Message(*stRX_msg);
@@ -223,7 +220,7 @@ void MailBox::Process_RX()
     case MailboxState_T::eRecovery:
 
         //Create message structure
-        stRX_msg = (RX_Message::RX_Message_Structure_Normal_T *)cRX_Buf;
+        RX_Message::RX_Message_Structure_Recovery_T * stRX_msg = (RX_Message::RX_Message_Structure_Recovery_T *)cRX_Buf;
 
         //If the mailbox state is already LOC_x, then we have already reset the sequence number.
         //  So if the RX message's sequence number isn't 1 + the last TX'd message's, induce LOC

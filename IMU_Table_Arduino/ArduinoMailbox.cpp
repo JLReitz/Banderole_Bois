@@ -92,21 +92,21 @@ static void ArduinoMailbox::Initialize()
                 0,              //Stack depth of minimum size allowed
                 NULL,           //No parameters passed in
                 3,              //Priority of 3
-                NULL);   //No handler for this task
+                NULL);          //No handler for this task
 
     xTaskCreate(Task_RX,        //Mailbox RX thread
                 "Mailbox_RX",   //English name for humans
                 100,            //Stack depth of 100 layers
                 NULL,           //No parameters passed in
                 2,              //Priority of 2
-                NULL);     //No handler for this task
+                NULL);          //No handler for this task
 
     xTaskCreate(Task_TX,        //Mailbox TX thread
                 "Mailbox_TX",   //English name for humans
                 100,            //Stack depth of 100 layers
                 NULL,           //No parameters passed in
                 2,              //Priority of 2
-                NULL);     //No handler for this task
+                NULL);          //No handler for this task
 }
 
 /*-------------------------------------------------------------------------------------------------
