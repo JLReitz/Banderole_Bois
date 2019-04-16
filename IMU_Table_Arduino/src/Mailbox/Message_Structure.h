@@ -1,7 +1,7 @@
 #ifndef MESSAGE_STRUCTURE_H
 #define MESSAGE_STRUCTURE_H
 
-#ifdef _ARDUINO
+#ifdef __AVR__
 #include <Arduino.h>
 #endif
 #ifdef _MAILBOX_EMULATOR
@@ -151,8 +151,8 @@ public:
     ~UUC_Message();
 
 	bool	Operating() const			{ return stStatus.bOperating; }
-	bool	CommandInProgress() const	{ return stStatus.bTaskInProgress; }
-	bool	CommandComplete() const		{ return stStatus.bTaskComplete; }
+	bool	TaskInProgress() const	{ return stStatus.bTaskInProgress; }
+	bool	TaskComplete() const		{ return stStatus.bTaskComplete; }
 
 	unsigned long   SequenceNum() const { return nSequenceNum; }
 	unsigned long   HashCompare() const { return nHashCompare; }
@@ -206,31 +206,5 @@ private:
     float fVelocity_x, fVelocity_y, fVelocity_z;
     UUC_Status_T stStatus;
 };
-
-//More platform-based pre-process definitons and typedefs
-#ifdef _Arduino
-#define _RX_MESSAGE_LENGTH_NORMAL   53
-#define _RX_MESSAGE_LENGTH_RECOVERY 33
-#define _TX_MESSAGE_LENGTH_NORMAL   29
-#define _TX_MESSAGE_LENGTH_RECOVERY 9
-typedef CU_Message RX_Message;
-typedef UUC_Message TX_Message;
-#endif
-#ifdef _MAILBOX_EMULATOR
-#define _TX_MESSAGE_LENGTH_NORMAL   29
-#define _TX_MESSAGE_LENGTH_RECOVERY 9
-#define _RX_MESSAGE_LENGTH_NORMAL   53
-#define _RX_MESSAGE_LENGTH_RECOVERY 33
-
-typedef CU_Message TX_Message;
-typedef CU_Message::CU_Status_T TX_Status_T;
-typedef CU_Message::CU_Message_Structure_Normal_T TX_Message_Structure_Normal_T;
-typedef CU_Message::CU_Message_Structure_Recovery_T TX_Message_Structure_Recovery_T;
-
-typedef UUC_Message RX_Message;
-typedef UUC_Message::UUC_Status_T RX_Status_T;
-typedef UUC_Message::UUC_Message_Structure_Normal_T RX_Message_Structure_Normal_T;
-typedef UUC_Message::UUC_Message_Structure_Recovery_T RX_Message_Structure_Recovery_T;
-#endif
 
 #endif

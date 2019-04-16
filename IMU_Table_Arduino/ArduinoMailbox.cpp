@@ -117,7 +117,7 @@ static void ArduinoMailbox::Initialize()
             once every RX/TX frame.
 
     INPUT (void *)  --  vParameters
-                        Parameters to be passed to the task upon launch. Unused for this task.  
+        Parameters to be passed to the task upon launch. Unused for this task.  
 
     OUTPUT (void)
 */
@@ -145,7 +145,7 @@ static void ArduinoMailbox::Task_Main(void * vParameters)
             once every RX/TX frame.
 
     INPUT (void *)  --  vParameters
-                        Parameters to be passed to the task upon launch. Unused for this task.
+        Parameters to be passed to the task upon launch. Unused for this task.
 
     OUTPUT (void)
 */
@@ -180,7 +180,7 @@ static void ArduinoMailbox::Task_RX(void * vParameters)
             submitted to the mailbox and the TX_Ready semaphore is posted.
     
     INPUT (void *)  --  vParameters
-                        Parameters to be passed to the task upon launch. Unused for this task.
+        Parameters to be passed to the task upon launch. Unused for this task.
     
     OUTPUT (void)
 */
@@ -277,8 +277,7 @@ int ArduinoMailbox::TX_USB(Letter_T & lLetter)
     message from the other device on the current operating platform.
 
     INPUT (Letter_T &)  --  lLetter
-                            Unpopulated letter ready to be filled with the incoming data. Passed by
-                            reference.
+        Unpopulated letter ready to be filled with the incoming data. Passed by reference.
 
     OUTPUT (void)
 */
@@ -294,7 +293,7 @@ void ArduinoMailbox::RX_Specific(Letter_T & lLetter)
     a message to the other device on the current operating platform.
 
     INPUT (Letter_T &)  --  lLetter
-                            Populated letter ready for transmission. Passed by reference.
+        Populated letter ready for transmission. Passed by reference.
     
     OUTPUT (void)
 */

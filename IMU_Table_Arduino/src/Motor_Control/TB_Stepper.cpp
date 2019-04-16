@@ -17,16 +17,13 @@ TB_Stepper::TB_Stepper()
   Initializes the stepper instance, mapping the pins required for operation.
 
   INPUT (int) --  nPulsePin
-                  The number corresponding to the digital pin that drives the pulse signal to the
-                  stepper motor.
+      The number corresponding to the digital pin that drives the pulse signal to the stepper motor.
   
   INPUT (int) --  nDirectionPin
-                  The number corresponding to the digital pin that drives the direction signal to the
-                  stepper motor.
+      The number corresponding to the digital pin that drives the direction signal to the stepper motor.
   
   INPUT (int) --  nEnablePin
-                  The number corresponding to the digital pin that drives the enable signal to the
-                  stepper motor.
+      The number corresponding to the digital pin that drives the enable signal to the stepper motor.
   
   OUTPUT (void)
 */
@@ -47,7 +44,7 @@ void TB_Stepper::Initialize(int nPulsePin, int nDirectionPin, int nEnablePin)
   Increments the number of steps for the stepper motor to complete.
 
   INPUT (int) --  nSteps
-                  The number of steps for the motor to take. Adds on to what is currently left.
+      he number of steps for the motor to take. Adds on to what is currently left.
   
   OUTPUT (void)
 */
@@ -62,8 +59,8 @@ void TB_Stepper::Step(int nSteps)
   Task which handles scheduling and timing for a TB_Stepper instance.
 
   INPUT (void *)  --  vParameters
-                      Parameters to be passed to the task upon launch. Contains the address in
-                      memory of the TB_Stepper instance to step upon operation of this thread.
+      Parameters to be passed to the task upon launch. Contains the address in memory of the 
+      TB_Stepper instance to step upon operation of this thread.
 
   OUTPUT (void)
 */

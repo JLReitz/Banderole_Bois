@@ -14,9 +14,16 @@ public:
   //Public Functions
   TB_Stepper();
 
+  bool Get_Enabled() const  { return bEnabled; }
+
   uint32_t Get_CurrentSteps() { return nSteps_Current; }
   
-  void Set_Enable(const bool bEnable)                   { bEnabled = bEnable; } //TODO write to pin
+  void Set_Enable(const bool bEnable)                  
+  { 
+    bEnabled = bEnable;
+    digitalWrite(nEnablePin, bEnabled);
+  }
+
   void Set_StepsPerSecond(const float fStepsPerSecond)  { this->fStepsPerSecond = fStepsPerSecond; }
 
   void Initialize(int nPulse, int nDirection, int nEnable);

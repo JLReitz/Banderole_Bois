@@ -3,12 +3,12 @@
 
 #include "TB_Stepper.h"
 
-class BanderoleStepper
+class Banderole_Stepper
 {
 public:
 
     //Public Functions
-    BanderoleStepper(const float fStepSize);
+    Banderole_Stepper(const float fStepSize);
 
     const float Get_CurrentPosition() const { return stepper.Get_CurrentPosition() * fStepSize; }
 
@@ -23,7 +23,6 @@ private:
 
     //Private Members
     const float fStepSize;    //Step size in degrees
-    float fPosition_Target;  //Angular position of stepper in degrees
     float fRPM;                                 
 
     TB_Stepper stepper;

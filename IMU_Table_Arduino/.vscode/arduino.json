@@ -1,5 +1,6 @@
 {
     "board": "arduino:avr:mega",
     "sketch": "IMU_Table_Arduino.ino",
-    "configuration": "cpu=atmega2560"
+    "configuration": "cpu=atmega2560",
+    "programmer": "AVR ISP"
 }

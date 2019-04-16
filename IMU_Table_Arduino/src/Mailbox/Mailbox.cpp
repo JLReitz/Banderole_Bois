@@ -134,7 +134,7 @@ MailBox::MailboxState_T MailBox::updateStateMachine()
     case MailboxState_T::eNormal:
 
         //Set TX message length
-        nTX_Message_Length = _TX_MESSAGE_LENGTH_NORMAL;
+        nTX_Message_Length = _TX_MESSAGE_LENGTH_NORMAL + _LETTER_LENGTH;
 
         break;
 
@@ -157,7 +157,7 @@ MailBox::MailboxState_T MailBox::updateStateMachine()
     case MailboxState_T::eRecovery:
 
         //Set TX message length
-        nTX_Message_Length = _TX_MESSAGE_LENGTH_RECOVERY;
+        nTX_Message_Length = _TX_MESSAGE_LENGTH_RECOVERY + _LETTER_LENGTH;
 
         break;
     
@@ -194,13 +194,13 @@ void MailBox::Process_RX()
     case MailboxState_T::eNormal:
 
         //Create message structure
-         stRX_msg = (RX_Message_Structure_Normal_T *)cRX_Buf;
+        stRX_msg = (RX_Message_Structure_Normal_T *)cRX_Buf;
 
         //Load into RX Message
         mRX = RX_Message(*stRX_msg);
 
-        //If the RX_Message's sequence number isn't 1 + the last TX'd message's, induce LOC
-        if(mRX.SequenceNum() != (nRXSequenceNum + 1))
+        //If the RX_Message's reports LOC, or the RX sequence number isn't 1 + the last RX'd message's, induce LOC
+        if(is_LOC(stRXState) && (nRXSequenceNum != (nRXSequenceNum + 1)))
             Induce_LOC();
 
         break;
@@ -225,9 +225,8 @@ void MailBox::Process_RX()
         //Create message structure
         stRX_msg = (RX_Message_Structure_Normal_T *)cRX_Buf;
 
-        //If the mailbox state is already LOC_x, then we have already reset the sequence number.
-        //  So if the RX message's sequence number isn't 1 + the last TX'd message's, induce LOC
-        if(is_LOC(stTXState) && (mRX.SequenceNum() != (nRXSequenceNum + 1)))
+        //If the RX_Message's reports LOC, or the RX sequence number isn't 1 + the last RX'd message's, induce LOC
+        if(is_LOC(stRXState) && (nRXSequenceNum != (nRXSequenceNum + 1)))
             Induce_LOC();
 
         //Load into RX message
@@ -254,7 +253,7 @@ void MailBox::Process_RX()
 void MailBox::Process_TX()
 {
     //Set TX message sequence number
-    mTX.Set_SequenceNum(mRX.SequenceNum()+1);
+    nTXSequenceNum++;
 
     //Populate the message into cTX_Buf according to the current mailbox state
     switch(stTXState)
@@ -327,6 +326,7 @@ void MailBox::RX()
         if(checkCRC(lLetter)) //If the CRC returns no errors
         {
             stRXState = (MailboxState_T)lLetter.cMessageType; //Set the master's mailbox status to the message code
+            nRXSequenceNum = lLetter.nSequenceNum;
             
             //Set the expected RX message length
             if((stRXState == MailboxState_T::eNormal) || (stRXState == MailboxState_T::eStart))
@@ -357,8 +357,9 @@ void MailBox::TX()
     //Create and send a letter
     Letter_T lLetter;
 
+    lLetter.nSequenceNum = nTXSequenceNum;
     lLetter.cMessageType = (uint8_t)stTXState;
-    lLetter.nMessageLength = nTX_Message_Length + sizeof(lLetter) - sizeof(lLetter.sMessage);
+    lLetter.nMessageLength = nTX_Message_Length;
     lLetter.sMessage = cTX_Buf;
     lLetter.nCRC = computeCRC(lLetter) & 0x7FFF;
 
@@ -413,17 +414,17 @@ bool MailBox::checkCRC(Letter_T & lLetter)
 /*-------------------------------------------------------------------------------------------------
     computeCRC
 
-    Runs the provided letter through a 16 bit hashing process to find the 15 bit CRC value for the
+    Runs the provided letter through a 8 bit hashing process to find the 15 bit CRC value for the
     message. This CRC value is then sent along with the message and re-evaluated by the receiver to
     check for errors in the data transfer.
 
     INPUT (Letter_T &)  --  lLetter
         Populated with a full message. Passed by reference.
 
-    OUTPUT (uint16_t)
-        Returns the 15 bit CRC that is generated in the form of a 16 bit integer.
+    OUTPUT (uint8_t)
+        Returns the 15 bit CRC that is generated in the form of a 8 bit integer.
 */
-uint16_t MailBox::computeCRC(Letter_T & lLetter)
+uint8_t MailBox::computeCRC(Letter_T & lLetter)
 {
     //Create a string with the length of the letter minus the cData pointer and stop byte
 	const int nStr_Len = _LETTER_LENGTH + lLetter.sMessage.length();
@@ -453,30 +454,22 @@ uint16_t MailBox::computeCRC(Letter_T & lLetter)
     INPUT (int)     --  nLen
         The length of the C string in bits.
 
-    OUTPUT (uint16_t)
-        Returns the 15 bit CRC that is generated in the form of a 16 bit integer.
+    OUTPUT (uint8_t)
+        Returns the 8 bit CRC that is generated in the form of a 16 bit integer.
 */
-uint16_t MailBox::computeCRC(char * cStr, int nLen)
+uint8_t MailBox::computeCRC(char * cStr, int nLen)
 {
-    int nPos = 0;
-    uint16_t nProduct, nNumerator = MERGE_16(*cStr, *(cStr+1)), nDenominator;
+    uint8_t nRemainder = 0, nDivisor = 0x8D;
 
-    //Iterate through string
-    while(nPos <= nLen)
+    //Perform division on entire byte of data
+    for(int i=0; i<nLen; i++)
     {
-        if(!(nNumerator & 0x8000))  //If the first bit of the passed down value is 0
-            nDenominator = 0;           //Set the second value to 0
-        else                        //Else
-            nDenominator = 0xAAAA;      //Set it to the divisor
+        nRemainder ^= cStr[i];
 
-        //Calculate product for the current 16 bit window
-        nNumerator = (nNumerator << 1);													//Shift the passdown to the right by 1
-		nNumerator += ((*((uint16_t *)(cStr + (nPos / 8))) >> (7 - (nPos % 8))) & 0x1);	//Add the next bit in the string
-        nNumerator ^= nDenominator;														//Xor the numerator and denominator   
-    
-        nPos++;
+        //Perform division bit-by-bit on the data byte
+        for(int j=0; j<8; j++)
+            nRemainder = (nRemainder & 0x80) ? (nRemainder << 1) ^ nDivisor : (nRemainder << 1);
     }
 
-    //Return the final 15 bits of the numerator as the remainder
-    return nNumerator & 0x7FFF;
+    return nRemainder;
 }

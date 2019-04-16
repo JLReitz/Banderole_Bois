@@ -8,6 +8,36 @@ using namespace std;
 
 #include "Message_Structure.h"
 
+#ifdef __AVR__
+
+#define _RX_MESSAGE_LENGTH_NORMAL   53
+#define _RX_MESSAGE_LENGTH_RECOVERY 33
+#define _TX_MESSAGE_LENGTH_NORMAL   29
+#define _TX_MESSAGE_LENGTH_RECOVERY 9
+
+typedef CU_Message RX_Message;
+typedef UUC_Message TX_Message;
+
+#endif
+#ifdef _MAILBOX_EMULATOR
+
+#define _TX_MESSAGE_LENGTH_NORMAL   29
+#define _TX_MESSAGE_LENGTH_RECOVERY 9
+#define _RX_MESSAGE_LENGTH_NORMAL   53
+#define _RX_MESSAGE_LENGTH_RECOVERY 33
+
+typedef CU_Message TX_Message;
+typedef CU_Message::CU_Status_T TX_Status_T;
+typedef CU_Message::CU_Message_Structure_Normal_T TX_Message_Structure_Normal_T;
+typedef CU_Message::CU_Message_Structure_Recovery_T TX_Message_Structure_Recovery_T;
+
+typedef UUC_Message RX_Message;
+typedef UUC_Message::UUC_Status_T RX_Status_T;
+typedef UUC_Message::UUC_Message_Structure_Normal_T RX_Message_Structure_Normal_T;
+typedef UUC_Message::UUC_Message_Structure_Recovery_T RX_Message_Structure_Recovery_T;
+
+#endif
+
 #define HI_16(x)    ((x) & 0xFF00)
 #define LO_16(x)    ((x) & 0x00FF)
 #define HI_32(x)    ((x) & 0xFFFF0000)
@@ -16,7 +46,7 @@ using namespace std;
 #define MERGE_16(hi, lo)    ((((hi) & 0x00FF) << 8) + ((lo) & 0x00FF))
 #define MERGE_32(hi, lo)    ((((hi) & 0x0000FFFF) << 16) + ((lo) & 0x0000FFFF))
 
-#define _LETTER_LENGTH	5
+#define _LETTER_LENGTH	8
 
 #define _LOC_TIMEOUT_MS 100
 /* The timeout threshold for communications in milliseconds ///////////////////////////////////////
@@ -71,16 +101,17 @@ protected:
     {
 		/*
 			Envelope which contains headers for the mailbox messaging system.
-			Size (not including message length) = 5 Bytes
+			Size (not including the actual message) = 8 Bytes
 		*/
 
         //Message header
+        uint32_t nSequenceNum;  //4 Bytes
         uint8_t cMessageType;	//1 Byte
         uint8_t nMessageLength;	//1 Byte
 
         //Data
         string sMessage;
-        uint16_t nCRC : 15;	//2 Bytes
+        uint8_t nCRC : 15;	//1 Byte
 
         //Stop byte
         const uint8_t nStopByte = 0xE7;	//1 Byte
@@ -98,7 +129,7 @@ protected:
     //Protected Members
     uint8_t nTX_Message_Length, nRX_Message_Length;   //Dynamic message size depending on the mailbox status
     uint8_t nBytesReceived, nBytesSent;
-    uint32_t nRXSequenceNum;
+    uint32_t nRXSequenceNum, nTXSequenceNum;
 
 private:
 
@@ -116,8 +147,8 @@ private:
 
     bool checkCRC(Letter_T & lLetter);
 
-    uint16_t computeCRC(Letter_T & lLetter);
-    uint16_t computeCRC(char * cStr, int nLen);
+    uint8_t computeCRC(Letter_T & lLetter);
+    uint8_t computeCRC(char * cStr, int nLen);
     
     virtual void RX_Specific(Letter_T & lLetter) = 0;    //Pure virtual function to define the RX subroutine specific to the supporting platform
     virtual void TX_Specific(Letter_T & lLetter) = 0;    //Pure virtual function to define the TX subroutine specific to the supporting platform
