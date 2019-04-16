@@ -1,6 +1,11 @@
 #ifndef MAILBOX_H
 #define MAILBOX_H
 
+#ifdef _MAILBOX_EMULATOR
+#include <String>
+using namespace std;
+#endif
+
 #include "Message_Structure.h"
 
 #define HI_16(x)    ((x) & 0xFF00)
@@ -11,12 +16,14 @@
 #define MERGE_16(hi, lo)    ((((hi) & 0x00FF) << 8) + ((lo) & 0x00FF))
 #define MERGE_32(hi, lo)    ((((hi) & 0x0000FFFF) << 16) + ((lo) & 0x0000FFFF))
 
+#define _LETTER_LENGTH	5
+
+#define _LOC_TIMEOUT_MS 100
 /* The timeout threshold for communications in milliseconds ///////////////////////////////////////
 
-    If the amount of time specified above (in ms) is reached without a proper message being
-    received, the mailbox state will divert into Loss of Communications.
+	If the amount of time specified above (in ms) is reached without a proper message being
+	received, the mailbox state will divert into Loss of Communications.
 */
-#define _LOC_TIMEOUT_MS 100
 
 class MailBox
 {
@@ -62,16 +69,21 @@ protected:
     //Protected Structs
     typedef struct Letter_T
     {
+		/*
+			Envelope which contains headers for the mailbox messaging system.
+			Size (not including message length) = 5 Bytes
+		*/
+
         //Message header
-        uint8_t cMessageType;
-        uint8_t nMessageLength;
+        uint8_t cMessageType;	//1 Byte
+        uint8_t nMessageLength;	//1 Byte
 
         //Data
-        char * cData;
-        uint16_t nCRC : 15;
+        string sMessage;
+        uint16_t nCRC : 15;	//2 Bytes
 
         //Stop byte
-        const uint8_t nStopByte = 0xE7;
+        const uint8_t nStopByte = 0xE7;	//1 Byte
     };
     
     //Protected Functions
