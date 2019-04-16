@@ -453,25 +453,18 @@ uint16_t MailBox::computeCRC(Letter_T & lLetter)
 */
 uint16_t MailBox::computeCRC(char * cStr, int nLen)
 {
-    int nPos = 0;
-    uint16_t nProduct, nNumerator = MERGE_16(*cStr, *(cStr+1)), nDenominator;
+    uint16_t crc = 0x0000;
 
-    //Iterate through string
-    while(nPos <= nLen)
+    for (int i = 0; i<nLen; i++)
     {
-        if(!(nNumerator & 0x8000))  //If the first bit of the passed down value is 0
-            nDenominator = 0;           //Set the second value to 0
-        else                        //Else
-            nDenominator = 0xAAAA;      //Set it to the divisor
+        crc ^= (cStr[i]
 
-        //Calculate product for the current 16 bit window
-        nNumerator = (nNumerator << 1);                                     //Shift the passdown to the right by 1
-        nNumerator += (*((uint16_t *)(cStr+(nPos/8))) & (0x80 >> (nPos % 8))); //Add the next bit in the string
-        nNumerator ^= nDenominator;                                          //Xor the numerator and denominator   
-    
-        nPos++;
+        for(int j=8; j>0; j--)
+        {
+
+        }
+        crc = ((crc << 8) & 0xFF00) ^ (crc_table[((crc >> 8) & 0xFF) ^ data[i]]);
     }
 
-    //Return the final 15 bits of the numerator as the remainder
-    return nNumerator & 0x7FFF;
+    return crc & 0x7FFF;
 }

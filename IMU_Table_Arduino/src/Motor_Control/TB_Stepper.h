@@ -22,10 +22,6 @@ public:
   void Initialize(int nPulse, int nDirection, int nEnable);
   void Step(int steps);
 
-  static void Set_Enable(TB_Stepper & stepperInstance, const bool bEnable);
-  static void Set_StepsPerSecond(TB_Stepper & stepperInstance, const float fStepsPerSecond);
-
-  //Tasks
   static void Task_Step(void * vParameters);
 
 private:

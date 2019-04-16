@@ -56,17 +56,18 @@ void TB_Stepper::Step(int nSteps)
   this->nSteps_Target += nSteps;
 }
 
-static void TB_Stepper::Set_Enable(TB_Stepper & stepperInstance, const bool bEnable)
-{
-  stepperInstance.Set_Enable(bEnable);
-}
+/*-------------------------------------------------------------------------------------------------
+  Task_Step
 
-static void TB_Stepper::Set_StepsPerSecond(TB_Stepper & stepperInstance, const float fStepsPerSecond)
-{
-  stepperInstance.Set_StepsPerSecond(fStepsPerSecond);
-}
+  Task which handles scheduling and timing for a TB_Stepper instance.
 
-static void TB_Stepper::Task_Step(void * vParameters)
+  INPUT (void *)  --  vParameters
+                      Parameters to be passed to the task upon launch. Contains the address in
+                      memory of the TB_Stepper instance to step upon operation of this thread.
+
+  OUTPUT (void)
+*/
+void TB_Stepper::Task_Step(void * vParameters)
 {
   volatile bool bPulse;
   volatile float fToggleDelay;
@@ -90,7 +91,12 @@ static void TB_Stepper::Task_Step(void * vParameters)
     //  Do this only on high pulses so that each step window is split evenly (the delay only updates before the next step)
     //
     if(bPulse)
+    {
       fToggleDelay = ((1 / stepperInstance->fStepsPerSecond) / 2) * 1000;
+
+      //If the delay is smaller than a tick window, resize it to one tick window
+      fToggleDelay = (fToggleDelay < (1/configTICK_RATE_HZ)) ? (1/configTICK_RATE_HZ) : fToggleDelay;
+    }
     
     //Delay the task until next toggle
     vTaskDelayUntil(&tLastWakeTime, pdMS_TO_TICKS((int)fToggleDelay));
@@ -99,6 +105,14 @@ static void TB_Stepper::Task_Step(void * vParameters)
 
 //  TB_STepper -- Private Functions ///////////////////////////////////////////////////////////////
 
+/*-------------------------------------------------------------------------------------------------
+  Toggle
+
+  Toggles the pulse pin associated with the TB driver to incrememnt the step count on this motor.
+
+  INPUT (void)
+  OUTPUT (void)
+*/
 bool TB_Stepper::Toggle()
 {
   //  Boolean to keep track of which state the pulse pin is currently in
