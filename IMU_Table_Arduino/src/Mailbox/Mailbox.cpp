@@ -334,7 +334,7 @@ void MailBox::RX()
             else
                 nRX_Message_Length = _RX_MESSAGE_LENGTH_RECOVERY;                
             
-            memcpy(cRX_Buf, lLetter.sMessage.c_str(), nRX_Message_Length); //Copy the message to the RX buffer
+            memcpy(cRX_Buf, lLetter.sMessage.c_str(), nRX_Message_Length-_LETTER_LENGTH); //Copy the message to the RX buffer
             
             return;
         }        

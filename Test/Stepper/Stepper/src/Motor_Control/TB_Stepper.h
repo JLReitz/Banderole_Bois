@@ -12,11 +12,11 @@ class TB_Stepper
 public:
 
   //Public Functions
-  TB_Stepper();
+  TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin);
 
   bool Get_Enabled() const  { return bEnabled; }
 
-  uint32_t Get_CurrentSteps() { return nSteps_Current; }
+  int Get_CurrentSteps() { return nSteps_Current; }
   
   void Set_Enable(const bool bEnable)                  
   { 
@@ -26,7 +26,7 @@ public:
 
   void Set_StepsPerSecond(const float fStepsPerSecond)  { this->fStepsPerSecond = fStepsPerSecond; }
 
-  void Initialize(int nPulse, int nDirection, int nEnable);
+  void Initialize();
   void Step(int steps);
 
   static void Task_Step(void * vParameters);
@@ -39,7 +39,7 @@ private:
   //Private Members
   bool bEnabled;
   int nPulsePin, nDirectionPin, nEnablePin;
-  uint32_t nSteps_Current, nSteps_Target;
+  int nSteps_Current, nSteps_Target;
   float fStepsPerSecond;
 
 };

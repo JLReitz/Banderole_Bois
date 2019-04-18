@@ -5,33 +5,11 @@
 /*-------------------------------------------------------------------------------------------------
   Constructor -- Default
 */
-TB_Stepper::TB_Stepper() 
+TB_Stepper::TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin) 
 {
   nSteps_Current = 0;
   nSteps_Target = 0;
-}
 
-/*-------------------------------------------------------------------------------------------------
-  Initialize
-
-  Initializes the stepper instance, mapping the pins required for operation.
-
-  INPUT (int) --  nPulsePin
-                  The number corresponding to the digital pin that drives the pulse signal to the
-                  stepper motor.
-  
-  INPUT (int) --  nDirectionPin
-                  The number corresponding to the digital pin that drives the direction signal to the
-                  stepper motor.
-  
-  INPUT (int) --  nEnablePin
-                  The number corresponding to the digital pin that drives the enable signal to the
-                  stepper motor.
-  
-  OUTPUT (void)
-*/
-void TB_Stepper::Initialize(int nPulsePin, int nDirectionPin, int nEnablePin) 
-{
   this->nPulsePin = nPulsePin;
   this->nDirectionPin = nDirectionPin;
   this->nEnablePin = nEnablePin;
@@ -39,6 +17,27 @@ void TB_Stepper::Initialize(int nPulsePin, int nDirectionPin, int nEnablePin)
   pinMode(nPulsePin, OUTPUT);
   pinMode(nDirectionPin, OUTPUT);
   pinMode(nEnablePin, OUTPUT);
+}
+
+
+void TB_Stepper::Initialize()
+{
+    Serial.println("Beginning stepper task");
+
+    BaseType_t ret;
+
+    //Launch TB_Stepper task
+    ret = xTaskCreate(Task_Step,      //Stepper thread
+                "Step",                     //English name for humans. Is "Stepper#_Step" where # is the int value passed in
+                configMINIMAL_STACK_SIZE,   //Minimum allowable stack depth
+                this,                 //Pass in this stepper's instance to control it within the thread
+                1,                          //Priority of 5
+                NULL);                      //No task handle created
+
+    if(ret == pdFAIL)
+        Serial.println("Stepper task creation failed");
+    else
+        Serial.println("Stepper task creation success");
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -69,6 +68,8 @@ void TB_Stepper::Step(int nSteps)
 */
 void TB_Stepper::Task_Step(void * vParameters)
 {
+  Serial.println("Stepper task launched");
+
   volatile bool bPulse;
   volatile float fToggleDelay;
   TickType_t tLastWakeTime = xTaskGetTickCount();
@@ -79,6 +80,8 @@ void TB_Stepper::Task_Step(void * vParameters)
   //Infinite Loop
   while(1)
   {
+    Serial.println("Stepper task iteration");
+
     //Toggle the pulse pin
     bPulse = stepperInstance->Toggle();
 
@@ -133,7 +136,7 @@ bool TB_Stepper::Toggle()
   //    If going in the positive direction, the direction signal is LOW
   //    If going in the negative direction, the direction signal is HIGH
   //
-  bool bDir = (nSteps >= 0) ? false : true;
+  bool bDir = (nSteps_Target >= 0) ? false : true;
   digitalWrite(nDirectionPin, bDir);
 
   if(bEnabled || !bToggle)             //If the stepper is enabled or if the pulse pin needs to return to LOW
@@ -141,8 +144,19 @@ bool TB_Stepper::Toggle()
     digitalWrite(nPulsePin, bToggle); //Write the toggle state to the pulse pin
 
     //Update the target steps and current steps if on the high pulse
-    nSteps_Target = (bToggle) ? ((bDir) ? (nSteps+1) : (nSteps-1)) : nSteps;
-    nSteps_Current = (bToggle) ? ((bDir) ? (nSteps-1) : (nSteps+1)) : nSteps;
+    if(bToggle)
+    {
+      if(bDir)
+      {
+        nSteps_Target++;
+        nSteps_Current--;
+      }
+      else
+      {
+        nSteps_Target--;
+        nSteps_Current++;
+      }
+    }
   }
 
   return bToggle;
