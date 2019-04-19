@@ -148,6 +148,8 @@ bool TB_Stepper::Toggle()
   {
     if(nStepsDiff) //If there is a distance to travel still
     {
+      Serial.println(nStepsDiff);
+
       digitalWrite(nPulsePin, (bToggle) ? HIGH : LOW); //Write the toggle state to the pulse pin
 
       //Update the target steps and current steps if on the high pulse

@@ -10,7 +10,7 @@ void Task_Main(void * vParameters)
   float fCurrentPos;
   
   stepper.Initialize(1);
-  stepper.Set_RPM(2);
+  stepper.Set_RPM(.01);
   stepper.Set_Enable(true);
   stepper.Set_TargetPosition(180);
 

@@ -162,10 +162,11 @@ static void ArduinoMailbox::Task_RX(void * vParameters)
             g_Mailbox.Process_RX();
 
             xSemaphoreGive(semRX_Ready);
-			      xSemaphoreGive(semRX_Updated);
         }
         else
             g_Mailbox.Induce_LOC();   //If we haven't received a message in 100ms, induce Loss of Coms
+    
+        xSemaphoreGive(semRX_Updated);
     }
 }
 
