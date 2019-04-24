@@ -1,38 +1,56 @@
 #include "src/Motor_Control/Banderole_Stepper.h"
 
-Banderole_Stepper stepper((float)1.8, 2, 3, 4);
+Banderole_Stepper stepper1(.225, 2, 7, 4);
+Banderole_Stepper stepper2(.225, 8, 10, 12);
 
 void Task_Main(void * vParameters)
 {
   Serial.println("Main task launched");
 
   bool bUp = true;
-  float fCurrentPos;
+  float fCurrentPos1, fCurrentPos2;
   
-  stepper.Initialize(1);
-  stepper.Set_RPM(.01);
-  stepper.Set_Enable(true);
-  stepper.Set_TargetPosition(180);
+  stepper1.Set_RPM(.5);
+  stepper1.Set_TargetPosition(-180);
+  stepper1.Set_Enable(true);
+
+  stepper2.Set_RPM(1.25);
+  stepper2.Set_TargetPosition(-360);
+  stepper2.Set_Enable(true);
+  
+  stepper1.Initialize(1);
+  stepper2.Initialize(2);
 
   while(1)
   {
-    fCurrentPos = stepper.Get_CurrentPosition();
-    Serial.print("Current Position: ");
-    Serial.println(fCurrentPos);
+    fCurrentPos1 = stepper1.Get_CurrentPosition();
+    Serial.print("Current Position 1: ");
+    Serial.println(fCurrentPos1);
+
+    fCurrentPos2 = stepper2.Get_CurrentPosition();
+    Serial.print("Current Position 2: ");
+    Serial.println(fCurrentPos2);
 
     /*
     if(fCurrentPos >= 180 && bUp)
     {
+      stepper.Set_Enable(false);
+      vTaskDelay(pdMS_TO_TICKS(5000));
       Serial.println("Going down");
       stepper.Set_TargetPosition(0);
+      stepper.Set_Enable(true);
       bUp = false;
     }
     else if(fCurrentPos <= 0 && !bUp)
     {
+      stepper.Set_Enable(false);
+      vTaskDelay(pdMS_TO_TICKS(5000));
       Serial.println("Going up");
       stepper.Set_TargetPosition(180);
+      stepper.Set_Enable(true);
       bUp = true;
-    }*/
+    }
+    */
 
     vTaskDelay(pdMS_TO_TICKS(100));
   }

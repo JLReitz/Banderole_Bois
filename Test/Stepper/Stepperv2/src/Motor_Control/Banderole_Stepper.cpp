@@ -44,14 +44,15 @@ void Banderole_Stepper::Set_TargetPosition(const float fPosition_Target)
 void Banderole_Stepper::Set_RPM(const float fRPM)
 {
     //Calculate maximum allowable RPM
-    float fStepWindow = 2 * (1/configTICK_RATE_HZ);             //Minimum allowable step-window size
-    float fRPM_Allowed = 166.66 * (m_fStepSize / fStepWindow);    //Maximum allowable RPM
+    float fStepWindow = 2 * (.03);                          //Minimum allowable step-window size
+    int nStepsPerRev = 360 / m_fStepSize;                   //Calculate steps per revolutions
+    float fRPM_Allowed = 60 / (fStepWindow * nStepsPerRev); //Calculate maximum allowable RPM
 
     //Set new target RPM. Floor if too large for the hardware to support
     m_fRPM = (fRPM > fRPM_Allowed) ? fRPM_Allowed : fRPM;
 
     //Calculate the rotational speed in steps/s
-    float fStepsPerSec = (m_fRPM / 60) * (360 / m_fStepSize);
+    float fStepsPerSec = (m_fRPM * nStepsPerRev) / 60;
 
     m_stepper.Set_StepsPerSecond(fStepsPerSec);
 }
@@ -68,5 +69,5 @@ void Banderole_Stepper::Set_RPM(const float fRPM)
 */
 void Banderole_Stepper::Initialize(int nNum)
 {
-    m_stepper.Initialize();
+    m_stepper.Initialize(nNum);
 }

@@ -26,7 +26,7 @@ public:
 
   void Set_StepsPerSecond(const float fStepsPerSecond)  { this->fStepsPerSecond = fStepsPerSecond; }
 
-  void Initialize();
+  void Initialize(int nNum);
   void Step(int steps);
 
   static void Task_Step(void * vParameters);

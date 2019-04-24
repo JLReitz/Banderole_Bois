@@ -80,8 +80,6 @@ void TB_Stepper::Task_Step(void * vParameters)
   //Infinite Loop
   while(1)
   {
-    Serial.println("Stepper task iteration");
-
     //Toggle the pulse pin
     bPulse = stepperInstance->Toggle();
 

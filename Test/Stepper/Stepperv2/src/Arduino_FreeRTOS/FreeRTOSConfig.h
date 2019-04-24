@@ -93,7 +93,7 @@
 #define configMINIMAL_STACK_SIZE	    ( ( UBaseType_t ) 127 )
 #define configIDLE_STACK_SIZE	   		( ( UBaseType_t ) 128 )
 #define configMAX_TASK_NAME_LEN		    ( 8 )
-#define configTOTAL_HEAP_SIZE           1024
+#define configTOTAL_HEAP_SIZE           2048
 
 /* Timer definitions. */
 #define configUSE_TIMERS				1

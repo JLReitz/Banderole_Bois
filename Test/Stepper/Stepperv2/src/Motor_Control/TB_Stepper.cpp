@@ -20,15 +20,10 @@ TB_Stepper::TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin)
 }
 
 
-void TB_Stepper::Initialize()
+void TB_Stepper::Initialize(int nNum)
 {
-    Serial.println("Beginning stepper task");
-    Serial.print("Pulse pin: ");
-    Serial.println(nPulsePin);
-    Serial.print("Direction pin: ");
-    Serial.println(nDirectionPin);
-    Serial.print("Enable pin: ");
-    Serial.println(nEnablePin);
+    Serial.print("Beginning stepper task ");
+    Serial.println(nNum);
 
     BaseType_t ret;
 
@@ -37,7 +32,7 @@ void TB_Stepper::Initialize()
                 "Step",                     //English name for humans. Is "Stepper#_Step" where # is the int value passed in
                 configMINIMAL_STACK_SIZE,   //Minimum allowable stack depth
                 this,                 //Pass in this stepper's instance to control it within the thread
-                1,                          //Priority of 5
+                5,                          //Priority of 5
                 NULL);                      //No task handle created
 
     if(ret == pdFAIL)
@@ -58,7 +53,7 @@ void TB_Stepper::Initialize()
 */
 void TB_Stepper::Step(int nSteps) 
 {
-  this->nSteps_Target = nSteps;
+  this->nSteps_Target += nSteps;
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -131,7 +126,7 @@ bool TB_Stepper::Toggle()
   //  When disabled, bToggle will remain false in order to keep the pulse pin LOW
   //
   static bool bToggle = true;
-  int nStepsDiff = nSteps_Target - nSteps_Current;
+  int nSteps_Diff = nSteps_Target - nSteps_Current;
 
   //Invert bToggle if the stepper is enabled, keep it the same if not
   bToggle = (bEnabled) ? ((bToggle) ? false : true) : bToggle;
@@ -141,25 +136,21 @@ bool TB_Stepper::Toggle()
   //    If going in the positive direction, the direction signal is LOW
   //    If going in the negative direction, the direction signal is HIGH
   //
-  bool bDir = (nStepsDiff >= 0) ? false : true;
-  digitalWrite(nDirectionPin, (bDir) ? HIGH : LOW );
+  bool bDir = (nSteps_Diff >= 0) ? false : true;
+  digitalWrite(nDirectionPin, bDir);
 
-  if(bEnabled || !bToggle) //If the stepper is enabled or if the pulse pin needs to return to LOW
+  //If the stepper is enabled or if the pulse pin needs to return to LOW and there is a distance to travel
+  if((bEnabled || !bToggle) && nSteps_Diff)
   {
-    if(nStepsDiff) //If there is a distance to travel still
+    digitalWrite(nPulsePin, bToggle); //Write the toggle state to the pulse pinMode
+
+    //If on the HIGH pulse, increment the current position
+    if(bToggle)
     {
-      Serial.println(nStepsDiff);
-
-      digitalWrite(nPulsePin, (bToggle) ? HIGH : LOW); //Write the toggle state to the pulse pin
-
-      //Update the target steps and current steps if on the high pulse
-      if(bToggle)
-      {
-        if(bDir)
-          nSteps_Current--;
-        else
-          nSteps_Current++;
-      }
+      if(bDir)
+        nSteps_Current--;
+      else
+        nSteps_Current++;
     }
   }
 
