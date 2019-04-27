@@ -25,7 +25,7 @@ void Banderole_Stepper::Set_TargetPosition(const float fPosition_Target)
 {
     //Calculate the number of steps required to acheive this
     float fDiff = fPosition_Target - Get_CurrentPosition();
-    int nSteps = (int)fDiff / m_fStepSize;
+    int nSteps = fDiff / m_fStepSize;
 
     //Step required amount
     m_stepper.Step(nSteps);

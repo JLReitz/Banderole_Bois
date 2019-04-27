@@ -17,28 +17,24 @@ TB_Stepper::TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin)
   pinMode(nPulsePin, OUTPUT);
   pinMode(nDirectionPin, OUTPUT);
   pinMode(nEnablePin, OUTPUT);
+
+  taskInfo.stepper = this;
 }
 
 
 void TB_Stepper::Initialize(int nNum)
 {
-    Serial.print("Beginning stepper task ");
-    Serial.println(nNum);
-
     BaseType_t ret;
+
+    taskInfo.nStepperNum = nNum;
 
     //Launch TB_Stepper task
     ret = xTaskCreate(Task_Step,      //Stepper thread
                 "Step",                     //English name for humans. Is "Stepper#_Step" where # is the int value passed in
                 configMINIMAL_STACK_SIZE,   //Minimum allowable stack depth
-                this,                 //Pass in this stepper's instance to control it within the thread
+                &taskInfo,                 //Pass in this stepper's instance to control it within the thread
                 5,                          //Priority of 5
                 NULL);                      //No task handle created
-
-    if(ret == pdFAIL)
-        Serial.println("Stepper task creation failed");
-    else
-        Serial.println("Stepper task creation success");
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -69,20 +65,21 @@ void TB_Stepper::Step(int nSteps)
 */
 void TB_Stepper::Task_Step(void * vParameters)
 {
-  Serial.println("Stepper task launched");
 
-  volatile bool bPulse;
+  volatile bool bPulse = true;
   volatile float fToggleDelay;
   TickType_t tLastWakeTime = xTaskGetTickCount();
 
   //Initialize stepper instance from the task parameters
-  TB_Stepper * stepperInstance = (TB_Stepper *)vParameters;
+  Step_Task_Info_t * taskInfo = (Step_Task_Info_t *)vParameters;
 
   //Infinite Loop
   while(1)
   {
+    taskENTER_CRITICAL();
+
     //Toggle the pulse pin
-    bPulse = stepperInstance->Toggle();
+    bPulse = taskInfo->stepper->Toggle(!bPulse);
 
     //  Calculate the delay between each pulse toggle:
     //
@@ -94,12 +91,14 @@ void TB_Stepper::Task_Step(void * vParameters)
     //
     if(bPulse)
     {
-      fToggleDelay = ((1 / stepperInstance->fStepsPerSecond) / 2) * 1000;
+      fToggleDelay = ((1 / taskInfo->stepper->fStepsPerSecond) / 2) * 1000;
 
       //If the delay is smaller than a tick window, resize it to one tick
       fToggleDelay = (fToggleDelay < (1/configTICK_RATE_HZ)) ? (1/configTICK_RATE_HZ) : fToggleDelay;
     }
     
+    taskEXIT_CRITICAL();
+
     //Delay the task until next toggle
     vTaskDelayUntil(&tLastWakeTime, pdMS_TO_TICKS((int)fToggleDelay));
   }
@@ -115,21 +114,9 @@ void TB_Stepper::Task_Step(void * vParameters)
   INPUT (void)
   OUTPUT (void)
 */
-bool TB_Stepper::Toggle()
+bool TB_Stepper::Toggle(bool bToggle)
 {
-  //  Boolean to keep track of which state the pulse pin is currently in
-  //
-  //  Each motor step has two phases:
-  //    Low Pulse -- bToggle = false
-  //    High Pulse -- bToggle = true
-  //
-  //  When disabled, bToggle will remain false in order to keep the pulse pin LOW
-  //
-  static bool bToggle = true;
-  int nSteps_Diff = nSteps_Target - nSteps_Current;
-
-  //Invert bToggle if the stepper is enabled, keep it the same if not
-  bToggle = (bEnabled) ? ((bToggle) ? false : true) : bToggle;
+  int nSteps_Diff = this->nSteps_Target - this->nSteps_Current;
 
   //  Determine the required state of the directional pin:
   //

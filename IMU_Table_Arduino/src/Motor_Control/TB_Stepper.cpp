@@ -5,33 +5,11 @@
 /*-------------------------------------------------------------------------------------------------
   Constructor -- Default
 */
-TB_Stepper::TB_Stepper() 
+TB_Stepper::TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin) 
 {
   nSteps_Current = 0;
   nSteps_Target = 0;
-}
 
-/*-------------------------------------------------------------------------------------------------
-  Initialize
-
-  Initializes the stepper instance, mapping the pins required for operation.
-
-  INPUT (int) --  nPulsePin
-                  The number corresponding to the digital pin that drives the pulse signal to the
-                  stepper motor.
-  
-  INPUT (int) --  nDirectionPin
-                  The number corresponding to the digital pin that drives the direction signal to the
-                  stepper motor.
-  
-  INPUT (int) --  nEnablePin
-                  The number corresponding to the digital pin that drives the enable signal to the
-                  stepper motor.
-  
-  OUTPUT (void)
-*/
-void TB_Stepper::Initialize(int nPulsePin, int nDirectionPin, int nEnablePin) 
-{
   this->nPulsePin = nPulsePin;
   this->nDirectionPin = nDirectionPin;
   this->nEnablePin = nEnablePin;
@@ -39,6 +17,24 @@ void TB_Stepper::Initialize(int nPulsePin, int nDirectionPin, int nEnablePin)
   pinMode(nPulsePin, OUTPUT);
   pinMode(nDirectionPin, OUTPUT);
   pinMode(nEnablePin, OUTPUT);
+
+  taskInfo.stepper = this;
+}
+
+
+void TB_Stepper::Initialize(int nNum)
+{
+    BaseType_t ret;
+
+    taskInfo.nStepperNum = nNum;
+
+    //Launch TB_Stepper task
+    ret = xTaskCreate(Task_Step,      //Stepper thread
+                "Step",                     //English name for humans. Is "Stepper#_Step" where # is the int value passed in
+                configMINIMAL_STACK_SIZE,   //Minimum allowable stack depth
+                &taskInfo,                 //Pass in this stepper's instance to control it within the thread
+                5,                          //Priority of 5
+                NULL);                      //No task handle created
 }
 
 /*-------------------------------------------------------------------------------------------------
@@ -69,18 +65,21 @@ void TB_Stepper::Step(int nSteps)
 */
 void TB_Stepper::Task_Step(void * vParameters)
 {
-  volatile bool bPulse;
+
+  volatile bool bPulse = true;
   volatile float fToggleDelay;
   TickType_t tLastWakeTime = xTaskGetTickCount();
 
   //Initialize stepper instance from the task parameters
-  TB_Stepper * stepperInstance = (TB_Stepper *)vParameters;
+  Step_Task_Info_t * taskInfo = (Step_Task_Info_t *)vParameters;
 
   //Infinite Loop
   while(1)
   {
+    taskENTER_CRITICAL();
+
     //Toggle the pulse pin
-    bPulse = stepperInstance->Toggle();
+    bPulse = taskInfo->stepper->Toggle(!bPulse);
 
     //  Calculate the delay between each pulse toggle:
     //
@@ -92,12 +91,14 @@ void TB_Stepper::Task_Step(void * vParameters)
     //
     if(bPulse)
     {
-      fToggleDelay = ((1 / stepperInstance->fStepsPerSecond) / 2) * 1000;
+      fToggleDelay = ((1 / taskInfo->stepper->fStepsPerSecond) / 2) * 1000;
 
       //If the delay is smaller than a tick window, resize it to one tick
       fToggleDelay = (fToggleDelay < (1/configTICK_RATE_HZ)) ? (1/configTICK_RATE_HZ) : fToggleDelay;
     }
     
+    taskEXIT_CRITICAL();
+
     //Delay the task until next toggle
     vTaskDelayUntil(&tLastWakeTime, pdMS_TO_TICKS((int)fToggleDelay));
   }
@@ -113,36 +114,31 @@ void TB_Stepper::Task_Step(void * vParameters)
   INPUT (void)
   OUTPUT (void)
 */
-bool TB_Stepper::Toggle()
+bool TB_Stepper::Toggle(bool bToggle)
 {
-  //  Boolean to keep track of which state the pulse pin is currently in
-  //
-  //  Each motor step has two phases:
-  //    Low Pulse -- bToggle = false
-  //    High Pulse -- bToggle = true
-  //
-  //  When disabled, bToggle will remain false in order to keep the pulse pin LOW
-  //
-  static bool bToggle = true;
-
-  //Invert bToggle if the stepper is enabled, keep it the same if not
-  bToggle = (bEnabled) ? ((bToggle) ? false : true) : bToggle;
+  int nSteps_Diff = this->nSteps_Target - this->nSteps_Current;
 
   //  Determine the required state of the directional pin:
   //
   //    If going in the positive direction, the direction signal is LOW
   //    If going in the negative direction, the direction signal is HIGH
   //
-  bool bDir = (nSteps >= 0) ? false : true;
+  bool bDir = (nSteps_Diff >= 0) ? false : true;
   digitalWrite(nDirectionPin, bDir);
 
-  if(bEnabled || !bToggle)             //If the stepper is enabled or if the pulse pin needs to return to LOW
+  //If the stepper is enabled or if the pulse pin needs to return to LOW and there is a distance to travel
+  if((bEnabled || !bToggle) && nSteps_Diff)
   {
-    digitalWrite(nPulsePin, bToggle); //Write the toggle state to the pulse pin
+    digitalWrite(nPulsePin, bToggle); //Write the toggle state to the pulse pinMode
 
-    //Update the target steps and current steps if on the high pulse
-    nSteps_Target = (bToggle) ? ((bDir) ? (nSteps+1) : (nSteps-1)) : nSteps;
-    nSteps_Current = (bToggle) ? ((bDir) ? (nSteps-1) : (nSteps+1)) : nSteps;
+    //If on the HIGH pulse, increment the current position
+    if(bToggle)
+    {
+      if(bDir)
+        nSteps_Current--;
+      else
+        nSteps_Current++;
+    }
   }
 
   return bToggle;

@@ -11,6 +11,12 @@ class TB_Stepper
 {
 public:
 
+  typedef struct Step_Task_Info_t
+  {
+    uint8_t nStepperNum;
+    TB_Stepper * stepper;
+  };
+
   //Public Functions
   TB_Stepper(int nPulsePin, int nDirectionPin, int nEnablePin);
 
@@ -34,14 +40,14 @@ public:
 private:
 
   //Private Functions
-  bool Toggle();
+  bool Toggle(bool bToggle);
 
   //Private Members
   bool bEnabled;
   int nPulsePin, nDirectionPin, nEnablePin;
   int nSteps_Current, nSteps_Target;
   float fStepsPerSecond;
-
+  Step_Task_Info_t taskInfo;
 };
 
 #endif
